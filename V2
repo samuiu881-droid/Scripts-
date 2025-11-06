@@ -1,0 +1,161 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+local function getBackPart(char)
+    if char:FindFirstChild("UpperTorso") then
+        return char.UpperTorso  -- R15
+    elseif char:FindFirstChild("Torso") then
+        return char.Torso       -- R6
+    end
+    return nil
+end
+
+local function getRightHandPart(char)
+    if char:FindFirstChild("RightHand") then
+        return char.RightHand   -- R15
+    elseif char:FindFirstChild("Right Arm") then
+        return char["Right Arm"] -- R6
+    end
+    return nil
+end
+
+local function createNeonShuriken(char)
+    local back = getBackPart(char)
+    if not back then return end
+
+    if char:FindFirstChild("CustomNeonShuriken") then
+        char.CustomNeonShuriken:Destroy()
+    end
+
+    local shuriken = Instance.new("Model")
+    shuriken.Name = "CustomNeonShuriken"
+    shuriken.Parent = char
+
+    local center = Instance.new("Part")
+    center.Size = Vector3.new(0.8, 0.8, 0.2)
+    center.Shape = Enum.PartType.Cylinder
+    center.Material = Enum.Material.Neon
+    center.Color = Color3.fromRGB(255, 0, 0)
+    center.Transparency = 0.3
+    center.CanCollide = false
+    center.Anchored = false
+
+    -- Posición detrás (R6 y R15)
+    local offsetZ = back.Name == "Torso" and -1.5 or -1.8
+    center.CFrame = back.CFrame * CFrame.new(0, 0, offsetZ)
+    center.Parent = shuriken
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = back
+    weld.Part1 = center
+    weld.Parent = center
+
+    -- 8 cuchillas
+    for i = 1, 8 do
+        local angle = (i - 1) * (math.pi * 2 / 8)
+        local blade = Instance.new("Part")
+        blade.Size = Vector3.new(1.6, 0.2, 0.6)
+        blade.Material = Enum.Material.Neon
+        blade.Color = Color3.fromRGB(255, 0, 0)
+        blade.CanCollide = false
+
+        local mesh = Instance.new("SpecialMesh")
+        mesh.MeshType = Enum.MeshType.Wedge
+        mesh.Parent = blade
+
+        local offset = Vector3.new(math.cos(angle) * 1.2, 0, math.sin(angle) * 1.2)
+        blade.CFrame = center.CFrame * CFrame.new(offset) * CFrame.Angles(0, angle, math.rad(90))
+        blade.Parent = shuriken
+
+        local bladeWeld = Instance.new("WeldConstraint")
+        bladeWeld.Part0 = center
+        bladeWeld.Part1 = blade
+        bladeWeld.Parent = blade
+
+        local light = Instance.new("PointLight")
+        light.Color = Color3.fromRGB(255, 50, 50)
+        light.Brightness = 3
+        light.Range = 10
+        light.Parent = blade
+    end
+
+    -- Animación aleatoria
+    spawn(function()
+        while shuriken and shuriken.Parent do
+            wait(math.random(4, 9))
+            local tween = game:GetService("TweenService"):Create(center, TweenInfo.new(1.2, Enum.EasingStyle.Linear), {
+                CFrame = center.CFrame * CFrame.Angles(0, math.rad(1080), 0)
+            })
+            for _, p in pairs(shuriken:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    game:GetService("TweenService"):Create(p, TweenInfo.new(0.2), {Transparency = 0.1}):Play()
+                    delay(0.2, function()
+                        game:GetService("TweenService"):Create(p, TweenInfo.new(0.3), {Transparency = 0.3}):Play()
+                    end)
+                end
+            end
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    end)
+end
+
+local function createNeonSword(char)
+    local hand = getRightHandPart(char)
+    if not hand then return end
+
+    if char:FindFirstChild("NeonSword") then char.NeonSword:Destroy() end
+
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(0.3, 3.5, 0.3)
+    handle.Material = Enum.Material.Neon
+    handle.Color = Color3.fromRGB(255, 0, 0)
+    handle.Transparency = 0.2
+    handle.CanCollide = false
+    handle.Parent = char
+
+    -- Ajuste para R6 (mano más abajo)
+    local handOffsetY = hand.Name == "Right Arm" and -1.8 or -1.8
+    handle.CFrame = hand.CFrame * CFrame.new(0, handOffsetY, 0) * CFrame.Angles(math.rad(90), 0, 0)
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = hand
+    weld.Part1 = handle
+    weld.Parent = handle
+
+    -- Hoja
+    local blade = Instance.new("Part")
+    blade.Size = Vector3.new(0.15, 4, 1.2)
+    blade.Material = Enum.Material.Neon
+    blade.Color = Color3.fromRGB(255, 0, 0)
+    blade.Transparency = 0.1
+    blade.CanCollide = false
+    blade.CFrame = handle.CFrame * CFrame.new(0, 2.1, 0)
+    blade.Parent = char
+
+    local bladeWeld = Instance.new("WeldConstraint")
+    bladeWeld.Part0 = handle
+    bladeWeld.Part1 = blade
+    bladeWeld.Parent = blade
+
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 80, 80)
+    light.Brightness = 5
+    light.Range = 12
+    light.Parent = blade
+end
+
+local function applyVisuals(char)
+    if not char then return end
+    task.wait(1) -- Esperar a que cargue
+
+    createNeonShuriken(char)
+    createNeonSword(char)
+end
+
+if player.Character then
+    applyVisuals(player.Character)
+end
+player.CharacterAdded:Connect(applyVisuals)
